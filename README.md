@@ -6,6 +6,15 @@ Tool Slimmer（ツールスキーマ削減）のスキル版。システムプ�
 （毎ターン約2,677トークン実測）から、`skills.disabled` / `skills.platform_disabled` で指定した
 スキルを**隠す**。隠したスキルは `skill_view` で名前指定すれば**いつでも読める**（hydrate相当）。
 
+## 動作確認済み環境
+
+- **Hermes Agent v0.19.1**（2026-07-30 リリース / upstream cc4cab2f）
+- Python 3.11（Hermes バンドル venv）
+- 動作確認: 2026-08-10（Docker コンテナ構成・/opt/data 永続ボリューム）
+
+パッチ対象コード（`skills_tool.py`）は Hermes のバージョン更新で変わる可能性があるため、
+適用時に「target block not found」が出た場合は `docs/skill-slimmer.md` の手順に従って手動確認する。
+
 ## 目的
 
 - システムプロンプトの `<available_skills>` インデックスを削減して毎ターンのトークン消費を抑える
@@ -20,6 +29,21 @@ Tool Slimmer（ツールスキーマ削減）のスキル版。システムプ�
   - 変更後: disabled スキルは一覧から消えるが、`skill_view` では読める（hydrate）
 
 ## 使い方
+
+### 一発インストール（推奨）
+
+```bash
+# リポジトリを取得して install.sh を実行
+git clone git@github.com:manate-anagram/hermes-skill-slimmer.git /opt/data/repos/hermes-skill-slimmer
+bash /opt/data/repos/hermes-skill-slimmer/install.sh
+# → パッチ適用 + レシピ配置 + スキルカタログ生成を一括実行（冪等）
+```
+
+パスが標準と違う環境は環境変数で上書き:
+
+```bash
+SKILLS_DIR=/custom/skills HERMES_TOOLS=/custom/skills_tool.py bash install.sh
+```
 
 ### 前提条件
 
@@ -73,15 +97,19 @@ hermes-skill-slimmer/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
+├── install.sh                      # 一発インストーラ（パッチ+レシピ+カタログ）
+├── docs/
+│   └── skill-slimmer.md            # 詳細レシピ・判定しきい値（他環境への反映材料）
 └── scripts/
-    ├── install-skill-slimmer.sh      # パッチ適用（冪等）
-    └── generate-skill-catalog.py     # スキルカタログ自動生成
+    ├── install-skill-slimmer.sh    # パッチ適用（冪等）
+    └── generate-skill-catalog.py   # スキルカタログ自動生成
 ```
 
 ## 関連
 
 - Obsidian: `Agent/Procedures/2026-08-10_Skill_Slimmer_適用フロー.md`
 - `skill-management` スキル: `references/skill-slimmer.md`（詳細レシピ・判定しきい値）
+  ※ 本リポジトリの `docs/skill-slimmer.md` と同一内容（install.sh が同期配置する）
 
 ## ライセンス
 
