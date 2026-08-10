@@ -98,8 +98,8 @@ hermes-skill-slimmer/
 ├── CHANGELOG.md
 ├── LICENSE
 ├── install.sh                      # 一発インストーラ（パッチ+レシピ+カタログ）
-├── docs/
-│   └── skill-slimmer.md            # 詳細レシピ・判定しきい値（他環境への反映材料）
+├── skills/
+│   └── skill-slimmer/SKILL.md      # 配布用レシピ（SKILL.md 形式・単一ソース）
 └── scripts/
     ├── install-skill-slimmer.sh    # パッチ適用（冪等）
     └── generate-skill-catalog.py   # スキルカタログ自動生成
@@ -108,8 +108,7 @@ hermes-skill-slimmer/
 ## 関連
 
 - Obsidian: `Agent/Procedures/2026-08-10_Skill_Slimmer_適用フロー.md`
-- `skill-management` スキル: `references/skill-slimmer.md`（詳細レシピ・判定しきい値）
-  ※ 本リポジトリの `docs/skill-slimmer.md` と同一内容（install.sh が同期配置する）
+- `skill-management` スキル: `references/skill-slimmer.md`（install.sh が `skills/skill-slimmer/SKILL.md` から同期配置する）
 
 ## ライセンス
 

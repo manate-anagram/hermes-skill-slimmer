@@ -6,7 +6,8 @@
 
 ### Added
 - `install.sh` — 一発インストーラ（パッチ適用 + レシピ配置 + カタログ生成、環境変数でパス上書き可）
-- `docs/skill-slimmer.md` — 詳細レシピ・判定しきい値（skill-management の references と同一内容）
+- `skills/skill-slimmer/SKILL.md` — 配布用レシピ（SKILL.md 形式）。install.sh が環境に応じて
+  skill-management の references または独立スキルとして配置
 - README に「動作確認済み環境」（Hermes Agent v0.19.1 / 2026-07-30）を追記
 
 ## [0.1.0] - 2026-08-10

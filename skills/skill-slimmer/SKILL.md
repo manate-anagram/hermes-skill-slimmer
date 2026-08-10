@@ -1,10 +1,19 @@
+---
+name: skill-slimmer
+description: "Use when スキル一覧をスリム化/未使用スキルを非表示にしたい。使用頻度分析（usage.json + state.db）→ config無効化 → hydrate復活の手順。"
+trigger: manual
+tags: [skill-management, token-saving, hydration]
+---
+
 # Skill Slimmer — 使用頻度分析→非表示 詳細レシピ（2026-08-10実装）
 
 システムプロンプトの `<available_skills>` ブロック（毎ターン約2,677トークン/10,711 chars 実測）から
 未使用スキルを隠してトークンを削減する手法。Tool Slimmer（ツール削減）のスキル版。
 
-> **置き場所（2026-08-10 マナテ確定）**: 本ファイル（skill-management/references/skill-slimmer.md）が正規。
-> 独立スキル `skill-slimmer` は作らない（新規スキル作成規約: 重複・別名禁止に抵触）。
+> **配置（2026-08-10 マナテ確定）**: このリポジトリでは配布用 SKILL.md 形式で保持。
+> install.sh が環境に応じて配置先を変える:
+> - skill-management スキルがある環境 → `skill-management/references/skill-slimmer.md` に同期（独立スキルにしない）
+> - skill-management が無い環境 → `skills/skill-slimmer/SKILL.md` として独立スキル配置
 > `hermes-configuration/references/skill-slimmer.md` は「パッチ機構・永続化」視点の別ドキュメントとして併存。
 > 役割分担: 機構の話（パッチ・コンテナ更新対策）は hermes-configuration 側、運用（何を隠すか・しきい値・手順）は本ファイル側。
 

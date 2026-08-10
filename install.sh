@@ -17,15 +17,20 @@ HERMES_TOOLS="${HERMES_TOOLS:-/opt/hermes/tools/skills_tool.py}"
 echo "==> [1/3] Skill Slimmer patch"
 TARGET="$HERMES_TOOLS" bash "$REPO_DIR/scripts/install-skill-slimmer.sh"
 
-echo "==> [2/3] Recipe: docs/skill-slimmer.md -> skills/.../skill-management/references/"
-RECIPE_DEST="$SKILLS_DIR/software-development/skill-management/references/skill-slimmer.md"
+echo "==> [2/3] Recipe: skills/skill-slimmer/SKILL.md"
+RECIPE_SRC="$REPO_DIR/skills/skill-slimmer/SKILL.md"
 if [[ -d "$SKILLS_DIR/software-development/skill-management" ]]; then
+  # skill-management がある環境 → references に同期（独立スキルにしない・一覧非表示維持）
+  RECIPE_DEST="$SKILLS_DIR/software-development/skill-management/references/skill-slimmer.md"
   mkdir -p "$(dirname "$RECIPE_DEST")"
-  cp "$REPO_DIR/docs/skill-slimmer.md" "$RECIPE_DEST"
-  echo "    installed -> $RECIPE_DEST"
+  cp "$RECIPE_SRC" "$RECIPE_DEST"
+  echo "    installed -> $RECIPE_DEST (as skill-management reference)"
 else
-  echo "    WARN: skill-management not found under $SKILLS_DIR — recipe skipped."
-  echo "    (copy docs/skill-slimmer.md manually if you still want it)"
+  # skill-management が無い環境 → 独立スキルとして配置
+  SKILL_DEST="$SKILLS_DIR/skill-slimmer/SKILL.md"
+  mkdir -p "$(dirname "$SKILL_DEST")"
+  cp "$RECIPE_SRC" "$SKILL_DEST"
+  echo "    installed -> $SKILL_DEST (as standalone skill)"
 fi
 
 echo "==> [3/3] Skill catalog"
