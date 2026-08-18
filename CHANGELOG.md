@@ -10,6 +10,14 @@
   skill-management の references または独立スキルとして配置
 - README に「動作確認済み環境」（Hermes Agent v0.19.1 / 2026-07-30）を追記
 
+### Changed
+- `skill-slimmer-autoindex` プラグイン（Hermes プラグイン）を追加:
+  `on_skill_lifecycle` フックでスキル追加・再有効化時に `generate-skill-catalog.py` を
+  自動呼び出し、`skill-catalog.md` を再生成する。本番（v0.20.3）で動作確認済み。
+- `README.md` を英語化（構成ツリー・Note コメント）し、誤った `docs/skill-slimmer.md`
+  参照を `skills/skill-slimmer/SKILL.md` に修正。Operational Notes / Pitfalls セクションを追加。
+- 動作確認済み環境を v0.20.3 / Python 3.13.5 に更新（初回公開時は v0.19.1 / Python 3.11）。
+
 ## [0.1.0] - 2026-08-10
 
 ### Added
