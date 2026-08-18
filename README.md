@@ -8,9 +8,13 @@ Tool Slimmer（ツールスキーマ削減）のスキル版。システムプ�
 
 ## 動作確認済み環境
 
-- **Hermes Agent v0.19.1**（2026-07-30 リリース / upstream cc4cab2f）
-- Python 3.11（Hermes バンドル venv）
-- 動作確認: 2026-08-10（Docker コンテナ構成・/opt/data 永続ボリューム）
+- **Hermes Agent v0.20.3**（2026-08-16 リリース）— パッチ・プラグイン検証済み
+- Python 3.13.5（Hermes バンドル venv: `/opt/hermes/.venv/bin/python3`）
+- 動作確認: 2026-08-18（Docker コンテナ構成・/opt/data 永続ボリューム）
+
+> 初回公開時（2026-08-10）は v0.19.1 / Python 3.11 で検証。本リポジトリの
+> `skill-slimmer-autoindex` プラグインは v0.20.3 の `on_skill_lifecycle` フックで
+> 動作確認済み。
 
 パッチ対象コード（`skills_tool.py`）は Hermes のバージョン更新で変わる可能性があるため、
 適用時に「target block not found」が出た場合は `skills/skill-slimmer/SKILL.md` の手順に従って手動確認する。
