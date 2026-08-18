@@ -190,3 +190,19 @@ for tool_name, content, ts in cur:
 
 ## 手順メモ（Obsidian）
 `Agent/Procedures/2026-08-10_Skill_Slimmer_適用フロー.md`
+
+## スキルカタログの自動更新（skill-slimmer-autoindex プラグイン）
+
+スキル追加・再有効化時に `skill-catalog.md` を自動再生成する Hermes プラグイン。
+
+- **プラグイン名**: `skill-slimmer-autoindex`
+- **仕組み**: Hermes の `on_skill_lifecycle` フック（`skill_manage` の create/install/restore/removed/enabled/disabled 等）を捕捉し、
+  `scripts/generate-skill-catalog.py` を Hermes venv Python（`HERMES_PYTHON` またはプロセス自身）で呼び出す
+- **配置**: `/opt/data/plugins/skill-slimmer-autoindex/`
+  - `plugin.yaml`（`name: skill-slimmer-autoindex`, `provides_hooks: [on_skill_lifecycle]`）
+  - `__init__.py`（フック登録 + カタログ再生成）
+- **有効化**: Hermes 再起動（`/restart` または `hermes gateway restart`）でロード
+- **注意**: `/reload-skills` 単体では発火しない（Hermes コア仕様）。スキル追加は `skill_manage` 経由で行うこと
+
+このプラグインにより、`skill-management` 配下の `references/skill-catalog.md` は
+スキル変更のたびに手動実行なしで最新状態を保つ。

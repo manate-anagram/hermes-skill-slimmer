@@ -13,7 +13,7 @@ Tool Slimmer（ツールスキーマ削減）のスキル版。システムプ�
 - 動作確認: 2026-08-10（Docker コンテナ構成・/opt/data 永続ボリューム）
 
 パッチ対象コード（`skills_tool.py`）は Hermes のバージョン更新で変わる可能性があるため、
-適用時に「target block not found」が出た場合は `docs/skill-slimmer.md` の手順に従って手動確認する。
+適用時に「target block not found」が出た場合は `skills/skill-slimmer/SKILL.md` の手順に従って手動確認する。
 
 ## 目的
 
@@ -92,23 +92,51 @@ skill_view(name='skill-a')  # disabled でも読める（hydrate）
 
 ## リポジトリ構成
 
-```
+```text
 hermes-skill-slimmer/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
-├── install.sh                      # 一発インストーラ（パッチ+レシピ+カタログ）
+├── install.sh                      # one-shot installer (patch + recipe + catalog)
 ├── skills/
-│   └── skill-slimmer/SKILL.md      # 配布用レシピ（SKILL.md 形式・単一ソース）
+│   └── skill-slimmer/SKILL.md      # distributed recipe (single SKILL.md source)
 └── scripts/
-    ├── install-skill-slimmer.sh    # パッチ適用（冪等）
-    └── generate-skill-catalog.py   # スキルカタログ自動生成
+    ├── install-skill-slimmer.sh    # idempotent patch applier
+    └── generate-skill-catalog.py   # skill catalog generator
 ```
+
+## スキルカタログの自動更新（skill-slimmer-autoindex プラグイン）
+
+スキル追加・再有効化時にカタログを自動再生成する Hermes プラグイン。
+`on_skill_lifecycle` フックで `generate-skill-catalog.py` を呼び出す。
+
+- 配置: `/opt/data/plugins/skill-slimmer-autoindex/`
+- 詳細: `skills/skill-slimmer/SKILL.md` の「スキルカタログの自動更新」セクション
+- カタログ出力先: `skill-management` スキル配下の `references/skill-catalog.md`
+
+> Note: `/reload-skills` alone does NOT trigger the hook (Hermes core behavior).
+> Add skills via `skill_manage` so the lifecycle event fires.
 
 ## 関連
 
-- Obsidian: `Agent/Procedures/2026-08-10_Skill_Slimmer_適用フロー.md`
 - `skill-management` スキル: `references/skill-slimmer.md`（install.sh が `skills/skill-slimmer/SKILL.md` から同期配置する）
+- 自動更新プラグイン: `skill-slimmer-autoindex`（本リポジトリ外の `/opt/data/plugins/` に配置）
+
+## Operational Notes / Pitfalls
+
+- **Editing the repo alone does NOT affect the live Hermes.** The patch target
+  is `/opt/hermes/tools/skills_tool.py` (root-owned). You must run
+  `scripts/install-skill-slimmer.sh` as root inside the container, then restart
+  the gateway for changes to take effect.
+- **Container recreation (image update) always wipes the patch.** Re-run steps
+  1–2 after every Hermes upgrade.
+- The patch script is idempotent: if the OLD block is not found it stops with an
+  error instead of corrupting the file.
+- If a Hermes upgrade changes `skills_tool.py`, the script's OLD block may no
+  longer match and fail. Inspect the target lines and update the script.
+- `skill-slimmer-autoindex` does NOT fire on `/reload-skills` (Hermes core
+  behavior). Add or re-enable skills via `skill_manage` so the
+  `on_skill_lifecycle` event fires and the catalog regenerates.
 
 ## ライセンス
 
