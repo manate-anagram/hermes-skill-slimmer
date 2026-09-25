@@ -1,98 +1,94 @@
 # hermes-skill-slimmer
 
-Hermes Agent のスキル一覧スリマー（Skill Slimmer）パッチ管理リポジトリ。
+Hermes Agent の**スキル一覧スリマー**。システムプロンプトの `<available_skills>` ブロックから、
+`skills.disabled` / `skills.platform_disabled` で指定したスキルを**隠して**毎ターンのトークンを削減する。
+隠したスキルは**名前を知っていれば `skill_view` でいつでも読める**（hydrate）。
 
-Tool Slimmer（ツールスキーマ削減）のスキル版。システムプロンプトの `<available_skills>` ブロック
-（毎ターン約2,677トークン実測）から、`skills.disabled` / `skills.platform_disabled` で指定した
-スキルを**隠す**。隠したスキルは `skill_view` で名前指定すれば**いつでも読める**（hydrate相当）。
+Tool Slimmer（ツールスキーマ削減）のスキル版。
 
 ## 動作確認済み環境
 
-- **Hermes Agent v0.20.3**（2026-08-16 リリース）— パッチ・プラグイン検証済み
+- **Hermes Agent v0.21.5**（v2026.9.24 / upstream `749220ef`）— 2026-09-25 検証
 - Python 3.13.5（Hermes バンドル venv: `/opt/hermes/.venv/bin/python3`）
-- 動作確認: 2026-08-18（Docker コンテナ構成・/opt/data 永続ボリューム）
+- Docker コンテナ構成（`/opt/hermes` = イメージ層 / `/opt/data` = 永続ボリューム）
 
-> 初回公開時（2026-08-10）は v0.19.1 / Python 3.11 で検証。本リポジトリの
-> `skill-slimmer-autoindex` プラグインは v0.20.3 の `on_skill_lifecycle` フックで
-> 動作確認済み。
+> 初回公開（2026-08-10）は v0.19.1 / Python 3.11。プラグインのフック名・フック契約は v0.20 系以降で安定。
 
-パッチ対象コード（`skills_tool.py`）は Hermes のバージョン更新で変わる可能性があるため、
-適用時に「target block not found」が出た場合は `skills/skill-slimmer/SKILL.md` の手順に従って手動確認する。
+## 仕組み（2段構え）
 
-## 目的
+1. **隠す**: `skills.disabled`（全プラットフォーム）/ `skills.platform_disabled.<platform>` に名前を入れると
+   `<available_skills>` インデックスから消える（＝トークン削減）
+2. **hydrate（読める状態を保つ）**: 標準の Hermes は「disabled スキルは `skill_view` でも拒否」なので、
+   隠したまま読めるようにする仕組みが要る。本リポジトリはこれを
+   **プラグインの `transform_tool_result` フック**で実現する（`plugins/skill-slimmer-autoindex/hydrate.py`）:
+   - `skill_view` が返した `Skill '…' is disabled` 拒否**だけ**を検知（それ以外の結果は素通し）
+   - `tools.skills_tool._is_skill_disabled` を**その呼び出し中だけ** False 固定にし、本体実装をそのまま再実行
+   - 得られた実コンテンツをツール結果として差し替える（失敗時は元の結果をそのまま返す＝fail-open）
+   - disabled 判定は `skills_tool.py`（通常スキル）と `skills_tool_plugin.py`（plugin 名前空間スキル）が
+     **同じ1関数**を参照するため、この1箇所で**両ゲート**をカバーする
 
-- システムプロンプトの `<available_skills>` インデックスを削減して毎ターンのトークン消費を抑える
-- ただし「隠す＝読めなくなる」にしない。名前を知っていれば `skill_view('名前')` で復活できる
-- 未使用スキルの棚卸し・無効化の運用は `skill-management` スキルの `references/skill-slimmer.md` に詳細
+**なぜコアパッチをやめたか**: `/opt/hermes` はコンテナイメージ層なので、ファイルパッチは
+イメージ更新・コンテナ再作成のたびに消える（＝毎回 root で再適用）。プラグインは `/opt/data/plugins`
+（永続ボリューム）にあり、**更新後も何もしなくてよい**。
 
-## パッチ内容
-
-- 対象: `/opt/hermes/tools/skills_tool.py` L1278-1290 付近
-- 変更: `skill_view` の disabled 拒否（early return）を「警告ログ+継続」に変更
-  - 変更前: disabled スキルは一覧から消える + `skill_view` も拒否
-  - 変更後: disabled スキルは一覧から消えるが、`skill_view` では読める（hydrate）
-
-## 使い方
-
-### 一発インストール（推奨）
+## インストール
 
 ```bash
-# リポジトリを取得して install.sh を実行
 git clone git@github.com:manate-anagram/hermes-skill-slimmer.git /opt/data/repos/hermes-skill-slimmer
 bash /opt/data/repos/hermes-skill-slimmer/install.sh
-# → パッチ適用 + レシピ配置 + スキルカタログ生成を一括実行（冪等）
+# → プラグイン配置 + 有効化 + レシピ配置 + カタログ生成（冪等）
+# → gateway を再起動してフックを読み込ませる（フックはプロセス起動時に読まれる）
 ```
 
 パスが標準と違う環境は環境変数で上書き:
 
 ```bash
-SKILLS_DIR=/custom/skills HERMES_TOOLS=/custom/skills_tool.py bash install.sh
+HERMES_HOME=/custom/data SKILLS_DIR=/custom/skills bash install.sh
 ```
 
-### 前提条件
-
-- Hermes Agent が Docker コンテナで稼働している
-- `/opt/hermes` はコンテナイメージ内ソース（root 所有・overlay レイヤー）のため、**コンテナ再作成で消える**
-- 再適用が必要になるたびに本リポジトリのスクリプトを使う
-
-### 適用（コンテナ更新後・root で実行）
+### 旧方式（コアパッチ）— 緊急時のみ
 
 ```bash
-# コンテナ内 root で実行
-bash /opt/data/repos/hermes-skill-slimmer/scripts/install-skill-slimmer.sh
-# 期待出力: "SKILL-SLIMMER: patched" or "already patched (no-op)"
-
-# 反映には Hermes gateway 再起動が必要
-docker restart hermes
+bash install.sh --legacy-patch
+# または単体で:
+sudo bash scripts/install-skill-slimmer.sh      # root（/opt/hermes を書き換える）
+sudo bash scripts/revert-skill-slimmer.sh --apply   # 外して stock に戻す
 ```
 
-冪等（2回実行しても no-op）。パッチ対象の OLD ブロックが一致しない場合はエラーで停止する。
+- ⚠️ **プラグインが有効な間は当てない**。コア側の拒否が消えると **hydrate フックが一度も発火しない**
+  （差し替えるべき「拒否」が来なくなるため）→ live 検証ができなくなる
+- 通常状態は「stock ブロックが 1 件」: `grep -c "is disabled. Enable it with" /opt/hermes/tools/skills_tool.py`
+
+## 使い方
 
 ### スキルを隠す
 
-`/opt/data/config.yaml` の以下にスキル名を追加する:
+`$HERMES_HOME/config.yaml`:
 
 ```yaml
 skills:
-  disabled: [skill-a, skill-b]              # 全プラットフォーム
+  disabled: [skill-a, skill-b]          # 全プラットフォーム
   platform_disabled:
-    discord: [skill-c]                       # 特定プラットフォームのみ
+    discord: [skill-c]                  # 特定プラットフォームのみ
 ```
 
-config.yaml のリスト更新は `file-operations` スキルの
-`scripts/config-yaml-update-list.py` を使うこと（`hermes config set` はリストを文字列化してしまうため）。
+リスト編集は `hermes config set` だと文字列化されて壊れるので、YAML を直接編集する
+（例: `file-operations` スキルの `config-yaml-update-list.py` のような全置換方式のスクリプトを使う）。
 
 ### 隠したスキルを読む
 
 ```python
-skill_view(name='skill-a')  # disabled でも読める（hydrate）
+skill_view(name='skill-a')   # disabled でも内容が返る（hydrate）
 ```
 
-### 使用頻度分析（何を隠すか）
+### どのスキルを隠すか（使用頻度分析）
 
-- データ源1: `/opt/data/skills/.usage.json`（view_count / last_viewed_at 等）
-- データ源2: `/opt/data/state.db` の tool レスポンス `content` JSON から `name` を抽出（`tool_calls` カラムは NULL が多い）
-- 判定しきい値の例や詳細手順は `skill-management` スキルの `references/skill-slimmer.md` を参照
+- データ源1: `$HERMES_HOME/skills/.usage.json`（`view_count` / `last_viewed_at` / `last_used_at`）
+- データ源2: `$HERMES_HOME/state.db` の **tool レスポンス `content`** から `name` を抽出
+  （`tool_calls` カラムは NULL が多い＝検出漏れする）
+- 判定は**2系統の突合**: 「直近30日に `.usage.json` の `last_viewed_at` も state.db の `skill_view` 呼び出しも無い」= 非表示候補
+
+詳細な判定しきい値・手順は `skills/skill-slimmer/SKILL.md` を参照。
 
 ## リポジトリ構成
 
@@ -101,46 +97,48 @@ hermes-skill-slimmer/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
-├── install.sh                      # one-shot installer (patch + recipe + catalog)
+├── install.sh                              # one-shot installer (plugin + recipe + catalog)
+├── plugins/
+│   └── skill-slimmer-autoindex/            # hydrate の実体（配布物）
+│       ├── plugin.yaml                     # provides_hooks: on_skill_lifecycle / pre_llm_call / transform_tool_result
+│       ├── __init__.py                     # フック登録（hydrate + カタログ再生成 + 思い出し注入）
+│       └── hydrate.py                      # transform_tool_result フック本体（disabled 拒否を差し替える）
 ├── skills/
-│   └── skill-slimmer/SKILL.md      # distributed recipe (single SKILL.md source)
+│   └── skill-slimmer/SKILL.md              # 配布用レシピ（使用頻度分析・隠し方の手順）
 └── scripts/
-    ├── install-skill-slimmer.sh    # idempotent patch applier
-    └── generate-skill-catalog.py   # skill catalog generator
+    ├── install-skill-slimmer.sh            # 旧: コアパッチ適用（冪等・緊急時のみ）
+    ├── revert-skill-slimmer.sh             # 旧: コアパッチ逆適用（stock に戻す）
+    └── generate-skill-catalog.py           # カタログ生成（隠し含む全スキル一覧）
 ```
 
-## スキルカタログの自動更新（skill-slimmer-autoindex プラグイン）
+## プラグインが担う3つのフック
 
-スキル追加・再有効化時にカタログを自動再生成する Hermes プラグイン。
-`on_skill_lifecycle` フックで `generate-skill-catalog.py` を呼び出す。
+| フック | 用途 |
+|---|---|
+| `transform_tool_result` | **hydrate**: `skill_view` の disabled 拒否を実コンテンツに差し替える |
+| `on_skill_lifecycle` | スキル追加・再有効化・削除時に `generate-skill-catalog.py` を走らせてカタログを再生成 |
+| `pre_llm_call` | 「一覧に出ていないスキルも `skill_view` で読める／カタログで探せる」を毎ターン注入（Tool Slimmer の `FALLBACK_INSTRUCTION` と同型） |
 
-- 配置: `/opt/data/plugins/skill-slimmer-autoindex/`
-- 詳細: `skills/skill-slimmer/SKILL.md` の「スキルカタログの自動更新」セクション
-- カタログ出力先: `skill-management` スキル配下の `references/skill-catalog.md`
+環境変数で挙動を調整できる（`hydrate.py` / `__init__.py` が参照）:
 
-> Note: `/reload-skills` alone does NOT trigger the hook (Hermes core behavior).
-> Add skills via `skill_manage` so the lifecycle event fires.
+- `HERMES_PYTHON` — カタログ生成に使う Python（既定: 実行中プロセスの python）
+- `SKILL_SLIMMER_CATALOG_SCRIPT` — カタログ生成スクリプトのパス
+- `SKILL_SLIMMER_CATALOG_PATH` — `pre_llm_call` が案内するカタログのパス
 
-## 関連
-
-- `skill-management` スキル: `references/skill-slimmer.md`（install.sh が `skills/skill-slimmer/SKILL.md` から同期配置する）
-- 自動更新プラグイン: `skill-slimmer-autoindex`（本リポジトリ外の `/opt/data/plugins/` に配置）
+> Note: `/reload-skills` では `on_skill_lifecycle` は発火しない（Hermes コア仕様）。スキルは
+> `skill_manage` 経由で追加・再有効化する。
 
 ## Operational Notes / Pitfalls
 
-- **Editing the repo alone does NOT affect the live Hermes.** The patch target
-  is `/opt/hermes/tools/skills_tool.py` (root-owned). You must run
-  `scripts/install-skill-slimmer.sh` as root inside the container, then restart
-  the gateway for changes to take effect.
-- **Container recreation (image update) always wipes the patch.** Re-run steps
-  1–2 after every Hermes upgrade.
-- The patch script is idempotent: if the OLD block is not found it stops with an
-  error instead of corrupting the file.
-- If a Hermes upgrade changes `skills_tool.py`, the script's OLD block may no
-  longer match and fail. Inspect the target lines and update the script.
-- `skill-slimmer-autoindex` does NOT fire on `/reload-skills` (Hermes core
-  behavior). Add or re-enable skills via `skill_manage` so the
-  `on_skill_lifecycle` event fires and the catalog regenerates.
+- **プラグインの変更もフックもプロセス起動時に読まれる** → 反映には gateway 再起動が必要
+- **コアパッチを当てると hydrate フックは静かに無効化される**（本体が拒否を返さなくなるため）。
+  併用はできるが、その状態でプラグインの検証はできない
+- **上流が拒否メッセージを変えたら hydrate は止まる**（fail-open で素の拒否が返るだけ・壊れはしない）。
+  その時直すのは `hydrate.py` の `_DISABLED_RE` **1行**で、コアパッチは要らない
+- **`transform_tool_result` フックは結果の文字列を丸ごと置換できる**ため、誤爆すると無関係なツール出力を壊しうる。
+  本実装は「JSON かつ `success != true` かつ `Skill '…' is disabled` を含む」場合**だけ**介入する
+- カタログ生成は PyYAML を要求する実装に差し替える場合は、Hermes の venv Python（`/opt/hermes/.venv/bin/python3`）で走らせる
+- 本番環境では **`SKILL_SLIMMER_CATALOG_SCRIPT` 等を `$HERMES_HOME/.env` に置く**と再起動後も効く
 
 ## ライセンス
 

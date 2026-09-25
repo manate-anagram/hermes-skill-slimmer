@@ -1,0 +1,7 @@
+name: skill-slimmer-autoindex
+version: 0.1.0
+description: Regenerate the Skill Slimmer skill catalog (skill-catalog.md) whenever a skill lifecycle event fires (skill_manage create/install/restore/etc.).
+provides_hooks:
+  - on_skill_lifecycle
+  - pre_llm_call
+  - transform_tool_result

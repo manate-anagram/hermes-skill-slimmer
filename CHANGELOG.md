@@ -5,6 +5,9 @@
 ## [Unreleased]
 
 ### Added
+- `plugins/skill-slimmer-autoindex/` — **hydrate の実体を同梱**（`plugin.yaml` / `__init__.py` / `hydrate.py`）。
+  `transform_tool_result`（hydrate）＋ `on_skill_lifecycle`（カタログ再生成）＋ `pre_llm_call`（思い出し注入）の3フック。
+  `install.sh` が `$HERMES_HOME/plugins/` へ配置して `hermes plugins enable --no-allow-tool-override` する
 - `install.sh` — 一発インストーラ（パッチ適用 + レシピ配置 + カタログ生成、環境変数でパス上書き可）
 - `skills/skill-slimmer/SKILL.md` — 配布用レシピ（SKILL.md 形式）。install.sh が環境に応じて
   skill-management の references または独立スキルとして配置
@@ -30,6 +33,13 @@
   第2ゲート（plugin 名前空間スキル）も同じ関数経由でカバーする。
 - `install-skill-slimmer.sh` / `generate-skill-catalog.py` を現行 Hermes（v0.21.x）の
   ブロック形状に追従（未コミットだった差分を取り込み）。旧パッチは緊急時の保険として残す。
+- **`install.sh` の既定動作を「プラグイン配置」に変更**。旧コアパッチは `--legacy-patch` の opt-in になった
+  （プラグインが有効な間はパッチを当ててもフックが発火しないため、既定で当てない）
+- **`README.md` を全面改訂**（プラグイン方式・動作確認環境 v0.21.5 / 2026-09-25・リポジトリ構成・
+  環境変数・Pitfalls）。`skills/skill-slimmer/SKILL.md` も同様に更新
+- **レシピ配置先の判定を dev-workflow 優先に**（旧 skill-management も後方互換で対応）
+- プラグインのパス・文言を環境変数化（`SKILL_SLIMMER_CATALOG_SCRIPT` / `SKILL_SLIMMER_CATALOG_PATH`）。
+  `pre_llm_call` の案内文からスキル総数のハードコードを外した（カタログ再生成で古くなるため）
 
 ## [0.1.0] - 2026-08-10
 
