@@ -26,7 +26,7 @@ from pathlib import Path
 
 import yaml
 
-DEFAULT_OUTPUT = Path("/opt/data/skills/software-development/skill-management/references/skill-catalog.md")
+DEFAULT_OUTPUT = Path("/opt/data/skills/software-development/dev-workflow/references/skill-catalog.md")
 SKILLS_ROOT = Path("/opt/data/skills")
 CONFIG = Path("/opt/data/config.yaml")
 USAGE = Path("/opt/data/skills/.usage.json")

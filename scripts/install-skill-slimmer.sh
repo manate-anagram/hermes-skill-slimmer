@@ -29,29 +29,19 @@ import py_compile
 target = Path(sys.argv[1])
 text = target.read_text(encoding="utf-8")
 
-OLD = '''        # Check if the skill is disabled by the user
-        resolved_name = parsed_frontmatter.get("name", skill_md.parent.name)
+# v2026.9.7 (v0.21.1) 対応: json.dumps 直書き → _fail() ヘルパー、
+# parsed_frontmatter → frontmatter にリネームされたため OLD ブロックを更新 (2026-09-08)
+OLD = '''        resolved_name = frontmatter.get("name", skill_md.parent.name)
         if _is_skill_disabled(resolved_name):
-            return json.dumps(
-                {
-                    "success": False,
-                    "error": (
-                        f"Skill '{resolved_name}' is disabled. "
-                        "Enable it with `hermes skills` or inspect the files directly on disk."
-                    ),
-                },
-                ensure_ascii=False,
-            )
-'''
+            return _fail(f"Skill '{resolved_name}' is disabled. Enable it with `hermes skills` or inspect the files directly on disk.")'''
 
-NEW = '''        # Check if the skill is disabled by the user — Skill Slimmer: hidden from
-        # the system-prompt index but still viewable on demand (hydrate).
-        resolved_name = parsed_frontmatter.get("name", skill_md.parent.name)
+NEW = '''        resolved_name = frontmatter.get("name", skill_md.parent.name)
         if _is_skill_disabled(resolved_name):
+            # Skill Slimmer hydrate: hidden from the system-prompt index but
+            # still viewable on demand.
             logging.getLogger(__name__).warning(
                 "Skill Slimmer hydrate: viewing disabled skill '%s' on demand", resolved_name
-            )
-'''
+            )'''
 
 if NEW in text:
     print(f"SKILL-SLIMMER: already patched (no-op) -> {target}")

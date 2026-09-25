@@ -9,6 +9,10 @@
 - `skills/skill-slimmer/SKILL.md` — 配布用レシピ（SKILL.md 形式）。install.sh が環境に応じて
   skill-management の references または独立スキルとして配置
 - README に「動作確認済み環境」（Hermes Agent v0.19.1 / 2026-07-30）を追記
+- `scripts/revert-skill-slimmer.sh` — 本体パッチの逆適用（stock の disabled-gate に戻す）。
+  hydrate をプラグイン経路（`transform_tool_result` フック）へ移行する際の cutover 用。
+  dry-run 既定 / `--apply` で書込 / バックアップ自動作成 / 構文検証付き。
+  対象ブロックが patched でも stock でもない場合は上流変更とみなして停止する。
 
 ### Changed
 - `skill-slimmer-autoindex` プラグイン（Hermes プラグイン）を追加:
@@ -17,6 +21,15 @@
 - `README.md` を英語化（構成ツリー・Note コメント）し、誤った `docs/skill-slimmer.md`
   参照を `skills/skill-slimmer/SKILL.md` に修正。Operational Notes / Pitfalls セクションを追加。
 - 動作確認済み環境を v0.20.3 / Python 3.13.5 に更新（初回公開時は v0.19.1 / Python 3.11）。
+- **hydrate は本体パッチ不要になった**: `skill-slimmer-autoindex` プラグインの
+  `hydrate.py`（`transform_tool_result` フック）が `skill_view` の disabled 拒否だけを検知し、
+  `tools.skills_tool._is_skill_disabled` を呼び出し中だけ False 固定にして本体実装を再実行、
+  実コンテンツへ差し替える。通常フックなので `allow_tool_override` / capability consent は不要で、
+  ツールの名前・toolset・schema は変わらない（= `hermes update` 後の再適用が不要）。
+  旧パッチは第1ゲートしか緩めていなかったが、本方式は `skills_tool_plugin.py` 側の
+  第2ゲート（plugin 名前空間スキル）も同じ関数経由でカバーする。
+- `install-skill-slimmer.sh` / `generate-skill-catalog.py` を現行 Hermes（v0.21.x）の
+  ブロック形状に追従（未コミットだった差分を取り込み）。旧パッチは緊急時の保険として残す。
 
 ## [0.1.0] - 2026-08-10
 
