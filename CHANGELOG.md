@@ -41,6 +41,17 @@
 - プラグインのパス・文言を環境変数化（`SKILL_SLIMMER_CATALOG_SCRIPT` / `SKILL_SLIMMER_CATALOG_PATH`）。
   `pre_llm_call` の案内文からスキル総数のハードコードを外した（カタログ再生成で古くなるため）
 
+### Fixed
+- **カタログ自動再生成が全滅していたのを修正**: Hermes 3.x の venv は PyYAML を同梱せず
+  **ruamel.yaml のみ**のため、`generate-skill-catalog.py` の `import yaml` が
+  `ModuleNotFoundError` で落ち、`on_skill_lifecycle` 経由の再生成が `rc=1` で失敗し続けていた
+  （症状: `errors.log` の `catalog regen failed (rc=1)`／カタログが古い総数のまま固定）。
+  PyYAML 不在時は ruamel.yaml へフォールバックする `safe_load` シムを追加（`YAMLError` も同梱）。
+  別インタープリタに逃がす回避策は環境依存なので採らない。
+- `discover_skills()` が深い階層（`mlops/models/audiocraft/SKILL.md` 等）のスキルを
+  無言で取りこぼしていたのを修正。`.venv` / `site-packages` / `node_modules` 配下の
+  依存パッケージ内 SKILL.md は除外し、深い階層は category を `"/"` 結合で保持する。
+
 ## [0.1.0] - 2026-08-10
 
 ### Added

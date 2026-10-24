@@ -24,7 +24,25 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:  # Hermes 3.x venv は PyYAML を同梱せず ruamel.yaml のみ
+    # 呼び出し元は Hermes 本体の python（/opt/hermes/.venv/bin/python）なので、
+    # PyYAML が無い環境でも動くよう ruamel.yaml にフォールバックする。
+    # 2026-10-23: Hermes 更新で PyYAML が消え、カタログ自動再生成が rc=1 で
+    # 失敗し続けた（errors.log の "catalog regen failed"）ための修正。
+    from ruamel.yaml import YAML as _RuamelYAML
+    from ruamel.yaml.error import YAMLError
+
+    class _YamlShim:
+        YAMLError = YAMLError
+
+        @staticmethod
+        def safe_load(stream):
+            loader = _RuamelYAML(typ="safe", pure=True)
+            return loader.load(stream)
+
+    yaml = _YamlShim()
 
 DEFAULT_OUTPUT = Path("/opt/data/skills/software-development/dev-workflow/references/skill-catalog.md")
 SKILLS_ROOT = Path("/opt/data/skills")
@@ -52,10 +70,20 @@ def discover_skills() -> list[dict]:
     for p in SKILLS_ROOT.rglob("SKILL.md"):
         rel = p.relative_to(SKILLS_ROOT)
         parts = rel.parts
+        # 依存パッケージ内の "skills" ディレクトリを除外（実例:
+        # download-core/scripts/.venv/**/playwright/driver/.../tools/skills/*）
+        if any(x in (".venv", "site-packages", "node_modules") for x in parts[:-1]):
+            continue
         if len(parts) == 3:
             skills.append({"category": parts[0], "name": parts[1], "path": p})
         elif len(parts) == 2:
             skills.append({"category": None, "name": parts[0], "path": p})
+        elif len(parts) > 3:
+            # 深い階層（例 mlops/models/audiocraft/SKILL.md）も収集する。
+            # category は "mlops/models" のように "/" 結合で保持（2026-09-29 修正:
+            # 旧実装は len==3/2 のみで深い階層を無言で取りこぼし、mlops 配下8本が
+            # カタログ未収録になっていた）。
+            skills.append({"category": "/".join(parts[:-2]), "name": parts[-2], "path": p})
     return skills
 
 
