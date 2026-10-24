@@ -2,7 +2,7 @@
 
 このリポジトリの変更履歴。バージョンは [Semantic Versioning](https://semver.org/lang/ja/) に従う。
 
-## [Unreleased]
+## [0.1.1] - 2026-10-24
 
 ### Added
 - `plugins/skill-slimmer-autoindex/` — **hydrate の実体を同梱**（`plugin.yaml` / `__init__.py` / `hydrate.py`）。
